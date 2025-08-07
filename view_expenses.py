@@ -1,21 +1,7 @@
-# view_expenses.py - View, delete, and manage expenses
 import tkinter as tk
 from tkinter import ttk, messagebox
-from database import cursor, conn
-import session
 from database import connect_db
-
-conn = connect_db()
-cur = conn.cursor()
-cur.execute(
-    "SELECT id, amount, category, date, comment FROM expenses WHERE user_id=? ORDER BY date DESC",
-    (session.current_user_id,)
-)
-rows = cur.fetchall()
-conn.close()
-
-for row in rows:
-    tree.insert("", tk.END, values=row)
+import session
 
 def open_view_expenses_screen(root):
     for widget in root.winfo_children():
@@ -25,37 +11,67 @@ def open_view_expenses_screen(root):
 
     tk.Label(root, text="Your Expenses", font=("Verdana", 24, "bold"), fg="#333").pack(pady=20)
 
-    tree = ttk.Treeview(root, columns=("ID", "Amount", "Category", "Date", "Comment"), show="headings")
-    tree.heading("ID", text="ID")
-    tree.heading("Amount", text="Amount")
-    tree.heading("Category", text="Category")
-    tree.heading("Date", text="Date")
-    tree.heading("Comment", text="Comment")
+    columns = ("ID", "Amount", "Category", "Date", "Comment")
+    tree = ttk.Treeview(root, columns=columns, show="headings", height=15)
 
-    tree.column("ID", width=50, anchor='center')
-    tree.column("Amount", width=100, anchor='center')
-    tree.column("Category", width=150, anchor='center')
-    tree.column("Date", width=100, anchor='center')
-    tree.column("Comment", width=250, anchor='w')
+    for col in columns:
+        tree.heading(col, text=col)
+        tree.column(col, width=150)
 
-    tree.pack(padx=20, pady=10, fill=tk.BOTH, expand=True)
+    tree.pack(pady=20)
 
-    # Load data
-    cursor.execute("SELECT ID, AMOUNT, CATEGORY, DATE, COMMENT FROM expenses WHERE user_id=? ORDER BY date DESC", (session.current_user_id,))
-    for row in cursor.fetchall():
-        tree.insert("", tk.END, values=row)
+    def refresh_tree():
+        for iid in tree.get_children():
+            tree.delete(iid)
+
+        conn = connect_db()
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT id, amount, category, date, comment FROM expenses WHERE user_id=? ORDER BY date DESC",
+            (session.current_user_id,)
+        )
+        rows = cur.fetchall()
+        conn.close()
+
+        for row in rows:
+            tree.insert("", tk.END, values=row)
 
     def delete_expense():
         selected = tree.selection()
         if not selected:
             messagebox.showwarning("Warning", "Please select an expense to delete.")
             return
-        item = tree.item(selected)
-        expense_id = item["values"][0]
-        cursor.execute("DELETE FROM expenses WHERE id=?", (expense_id,))
-        conn.commit()
-        tree.delete(selected)
+
+        iid = selected[0]
+        values = tree.item(iid, "values")
+        expense_id = values[0]
+
+        conn = connect_db()
+        cur = conn.cursor()
+        try:
+            cur.execute(
+                "DELETE FROM expenses WHERE id=? AND user_id=?",
+                (expense_id, session.current_user_id)
+            )
+            conn.commit()
+        except Exception as e:
+            messagebox.showerror("Error", str(e))
+        finally:
+            conn.close()
+
+        refresh_tree()
         messagebox.showinfo("Deleted", "Expense deleted successfully.")
 
-    tk.Button(root, text="Delete Selected", font=("Verdana", 12), bg="#F44336", fg="white", command=delete_expense).pack(pady=10)
-    tk.Button(root, text="Back to Home", font=("Verdana", 12), bg="#607D8B", fg="white", command=lambda: __import__('home').home_screen(root)).pack(pady=10)
+    tk.Button(
+        root, text="Delete Selected",
+        font=("Verdana", 14), bg="#F44336", fg="white",
+        command=delete_expense
+    ).pack(pady=10)
+
+    tk.Button(
+        root, text="Back to Home",
+        font=("Verdana", 14), bg="#2196F3", fg="white",
+        command=lambda: __import__("home").home_screen(root)
+    ).pack(pady=10)
+
+    refresh_tree()
