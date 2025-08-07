@@ -29,5 +29,14 @@ def home_screen(root):
     tk.Button(root, text="Export Expenses to CSV", font=("Verdana", 14), width=25, bg="#9C27B0", fg="white",
               command=export_expenses_to_csv).pack(pady=10)
 
-    tk.Button(root, text="Logout", font=("Verdana", 14), width=25, bg="#F44336", fg="white",
-          command=lambda: login_screen(root)).pack(pady=20)
+    from session import clear_user
+
+    tk.Button(
+        root,
+        text="Logout",
+        font=("Verdana", 14),
+        width=25,
+        bg="#F44336",
+        fg="white",
+        command=lambda: (clear_user(), __import__('login').start_login(root))
+    ).pack(pady=20)

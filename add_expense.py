@@ -1,6 +1,8 @@
 import tkinter as tk
 from tkinter import messagebox
 from database import cursor, conn
+import session
+from database import connect_db
 
 
 
@@ -31,22 +33,34 @@ def open_add_expense_screen(root):
     comment_entry.grid(row=3, column=1, pady=10, padx=10)
 
     def save_expense():
+        if session.current_user_id is None:
+            messagebox.showerror("Not logged in", "Please login again.")
+            return
+
         try:
             amount = float(amount_entry.get())
             category = category_entry.get()
             date = date_entry.get()
+            notes = notes_entry.get() if 'notes_entry' in locals() else ""
             comment = comment_entry.get()
-            cursor.execute("INSERT INTO expenses (amount, category, date, comment) VALUES (?, ?, ?, ?)",
-                           (amount, category, date, comment))
+
+            conn = connect_db()
+            cur = conn.cursor()
+            cur.execute("INSERT INTO expenses (user_id, amount, category, date, notes, comment) VALUES (?, ?, ?, ?, ?, ?)",
+                (session.current_user_id, amount, category, date, notes, comment)
+            )
             conn.commit()
+            conn.close()
+
             messagebox.showinfo("Success", "Expense added successfully!")
             from home import home_screen
             home_screen(root)
         except ValueError:
             messagebox.showerror("Error", "Please enter a valid amount.")
-
+    
     tk.Button(root, text="Save Expense", font=("Verdana", 14), bg="#4CAF50", fg="white",
               command=save_expense).pack(pady=20)
 
     tk.Button(root, text="Back to Home", font=("Verdana", 14), bg="#007acc", fg="white",
               command=lambda: __import__('home').home_screen(root)).pack(pady=10)
+        

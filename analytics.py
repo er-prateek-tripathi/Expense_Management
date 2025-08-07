@@ -6,11 +6,18 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from database import fetch_expenses
 from collections import defaultdict
 from database import cursor, conn
-
+import session
 from database import connect_db
 from tkinter import *
 from tkinter import ttk
 from collections import defaultdict
+
+conn = connect_db()
+cur = conn.cursor()
+cur.execute("SELECT category, amount FROM expenses WHERE user_id=?", (session.current_user_id,))
+data = cur.fetchall()
+conn.close()
+
 
 def open_analytics_screen(root):
     for widget in root.winfo_children():
@@ -23,8 +30,8 @@ def open_analytics_screen(root):
     conn = connect_db()
     cursor = conn.cursor()
 
-    # ✅ Ensure correct order
-    cursor.execute("SELECT category, amount FROM expenses")
+    cursor.execute("SELECT category, amount FROM expenses WHERE user_id=?", (session.current_user_id,))
+
     data = cursor.fetchall()
 
     category_totals = defaultdict(float)

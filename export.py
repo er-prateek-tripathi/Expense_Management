@@ -4,12 +4,22 @@ from tkinter import messagebox
 from database import cursor
 from tkinter import filedialog
 from database import cursor, conn
+import session
+from database import connect_db
+
+conn = connect_db()
+cur = conn.cursor()
+cur.execute("SELECT date, category, amount, comment FROM expenses WHERE user_id=?", (session.current_user_id,))
+rows = cur.fetchall()
+conn.close()
+
+
 
 
 def export_expenses_to_csv():
     try:
         # Fetch all expenses
-        cursor.execute("SELECT date, category, amount, comment FROM expenses")
+        cursor.execute("SELECT date, category, amount, comment FROM expenses WHERE user_id=?", (session.current_user_id,))
         data = cursor.fetchall()
 
         if not data:

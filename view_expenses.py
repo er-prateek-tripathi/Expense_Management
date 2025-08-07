@@ -2,6 +2,20 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
 from database import cursor, conn
+import session
+from database import connect_db
+
+conn = connect_db()
+cur = conn.cursor()
+cur.execute(
+    "SELECT id, amount, category, date, comment FROM expenses WHERE user_id=? ORDER BY date DESC",
+    (session.current_user_id,)
+)
+rows = cur.fetchall()
+conn.close()
+
+for row in rows:
+    tree.insert("", tk.END, values=row)
 
 def open_view_expenses_screen(root):
     for widget in root.winfo_children():
@@ -27,7 +41,7 @@ def open_view_expenses_screen(root):
     tree.pack(padx=20, pady=10, fill=tk.BOTH, expand=True)
 
     # Load data
-    cursor.execute("SELECT ID, AMOUNT, CATEGORY, DATE, COMMENT FROM expenses")
+    cursor.execute("SELECT ID, AMOUNT, CATEGORY, DATE, COMMENT FROM expenses WHERE user_id=? ORDER BY date DESC", (session.current_user_id,))
     for row in cursor.fetchall():
         tree.insert("", tk.END, values=row)
 
